@@ -194,24 +194,28 @@ def start_screen():  # начальная заставка
         intro_rect.x = 10
         text_coord += intro_rect.height
         screen.blit(string_rendered, intro_rect)
-    Button(40, 540)
-    Button(240, 540)
-    Button(660, 540)
+    x0 = 25
+    x1 = 255
+    x2 = 640
+    y0 = 565
+    Button(x0, y0)
+    Button(x1, y0)
+    Button(x2, y0)
     button_group.draw(screen)
     string_rendered = font.render("Начать", 1, pygame.Color('yellow'))
     intro_rect = string_rendered.get_rect()
-    intro_rect.top = 570
-    intro_rect.x = 80
+    intro_rect.top = y0 + 30
+    intro_rect.x = x0 + 45
     screen.blit(string_rendered, intro_rect)
     string_rendered = font.render("Загрузить", 1, pygame.Color('yellow'))
     intro_rect = string_rendered.get_rect()
-    intro_rect.top = 570
-    intro_rect.x = 270
+    intro_rect.top = y0 + 30
+    intro_rect.x = x1 + 30
     screen.blit(string_rendered, intro_rect)
     string_rendered = font.render("Выход", 1, pygame.Color('yellow'))
     intro_rect = string_rendered.get_rect()
-    intro_rect.top = 570
-    intro_rect.x = 700
+    intro_rect.top = y0 + 30
+    intro_rect.x = x2 + 45
     screen.blit(string_rendered, intro_rect)
     while True:
         for event in pygame.event.get():
@@ -258,6 +262,7 @@ class Wall(Tile):  # класс стены(унаследован от обыч�
 class Shooter(pygame.sprite.Sprite):  # класс стрелка и врага
     def __init__(self, x, y, image, group, health=30, health_max=30, shoot=5, speed=50, limit=180, accuracy=9):
         super().__init__(group, all_sprites)
+        self.id = random.randint(1, 10000000)
         self.image = image
         self.rect = self.image.get_rect()
         self.hw = self.rect[2] // 2
@@ -344,9 +349,9 @@ class Shooter(pygame.sprite.Sprite):  # класс стрелка и врага
                             self.y += self.speed / fps * self.dy
                             self.rect.centery = self.y
 
-    def shoot(self, enemy_x, enemy_y, shooter_number):  # стрельба
+    def shoot(self, enemy_x, enemy_y):  # стрельба
         if self.health > 0 and ((self.x - enemy_x) ** 2 + (self.y - enemy_y) ** 2) ** 0.5 < self.limit * 2.5:
-            return Bullet(self.x, self.y, enemy_x, enemy_y, red_bullet_image, self.limit, 5, shooter_number)
+            return Bullet(self.x, self.y, enemy_x, enemy_y, red_bullet_image, self.limit, 5, self.id)
         else:
             return None
 
@@ -359,6 +364,7 @@ class Player(Shooter):  # класс игрока, унаследованный 
         super().__init__(x, y, image, group, health, health_max, shoot, speed)
         self.dx = 0
         self.dy = 0
+        self.id = 0
         self.points = 0
         self.enemies_counter = 0
         self.total_score = 0
@@ -424,7 +430,8 @@ class Bullet(pygame.sprite.Sprite):  # класс пули
                             player.hit(self.power)
                     self.kill()
             else:
-                self.ranged = True
+                if self.shooter_number == 0:
+                    self.ranged = True
             if pygame.sprite.spritecollideany(self, all_enemies):  # попала во врага
                 if self.ranged:
                     self.show = False
@@ -432,7 +439,7 @@ class Bullet(pygame.sprite.Sprite):  # класс пули
                         if pygame.sprite.collide_circle(self, enemy):
                             enemy.hit(self.power)
                     self.kill()
-            else:
+            elif self.shooter_number != 0:
                 self.ranged = True
         else:
             self.kill()
@@ -651,7 +658,7 @@ while levels:  # Пока можно загружать уровни
                 for i, enemy in enumerate(enemies):
                     enemy.move()
                     if (enemy_shoots + i * 15) % 40 == 0:
-                        enemy.shoot(my.x, my.y, i)
+                        enemy.shoot(my.x, my.y)
                 for i in range(len(enemies) - 1, -1, -1):
                     if enemies[i].draw():
                         enemies.pop(i)
