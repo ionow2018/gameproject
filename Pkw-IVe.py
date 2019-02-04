@@ -1,8 +1,10 @@
-import pygame, os, sys
+import pygame
+import os
+import sys
 import random
 
 
-def end_screen(): # заставка в случае победы или поражения
+def end_screen():  # заставка в случае победы или поражения
     place, scores = load_record("pkw-stat.txt", my.total_score)
     ins = ""
     if place > 0:
@@ -41,10 +43,10 @@ def end_screen(): # заставка в случае победы или пор�
             if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                 return  # начинаем игру
         pygame.display.flip()
-        clock.tick(fps) #
+        clock.tick(fps)
 
 
-def generate_level(level): # генерация уровня
+def generate_level(level):  # генерация уровня
     x, y = -1, -1
     for y in range(len(level)):
         for x in range(len(level[y])):
@@ -57,7 +59,7 @@ def generate_level(level): # генерация уровня
     return x, y
 
 
-def load_image(name, colorkey=None): # загрузка изображения
+def load_image(name, colorkey=None):  # загрузка изображения
     fullname = os.path.join('data', name)
     try:
         image = pygame.image.load(fullname)
@@ -72,7 +74,7 @@ def load_image(name, colorkey=None): # загрузка изображения
         return None
 
 
-def load_level(filename): # загрузка уровня
+def load_level(filename):  # загрузка уровня
     filename = "data/" + filename
     # Читаем уровень, убирая символы перевода строки
     try:
@@ -96,7 +98,7 @@ def load_level(filename): # загрузка уровня
         return None
 
 
-def load_record(filename, new=-1): # загрузка таблицы рекордов
+def load_record(filename, new=-1):  # загрузка таблицы рекордов
     place = -1
     filename = "data/" + filename
     scores = []
@@ -133,7 +135,7 @@ def load_record(filename, new=-1): # загрузка таблицы рекор�
     return place, scores
 
 
-def load_state(): # загрузка состояния(здоровья и т.д.)
+def load_state():  # загрузка состояния(здоровья и т.д.)
     filename = "data/pkw-save.txt"
     try:
         f = open(filename, mode="r")
@@ -146,7 +148,7 @@ def load_state(): # загрузка состояния(здоровья и т.�
         return -1, ""
 
 
-def printscreen(): # интерфейс с очками и здоровьем
+def printscreen():  # интерфейс с очками и здоровьем
     text = font.render("Очки", True, (0, 255, 0))
     screen.blit(text, [wt - tile_width * 2, ht])
     text = font.render(str(my.points), True, (0, 255, 0))
@@ -159,20 +161,20 @@ def printscreen(): # интерфейс с очками и здоровьем
     screen.blit(text, [wt - w, ht + tile_width])
 
 
-def save_state(): # сохранение состояния
+def save_state():  # сохранение состояния
     filename = "data/pkw-save.txt"
     f = open(filename, mode="w")
     f.write(str(level_number) + "\n")
     string = str(my.x) + " " +\
-             str(my.y) + " " +\
-             str(my.health) + " " +\
-             str(my.points) + " " +\
-             str(my.enemies_counter) + " " +\
-             str(my.total_score)
+        str(my.y) + " " +\
+        str(my.health) + " " +\
+        str(my.points) + " " +\
+        str(my.enemies_counter) + " " +\
+        str(my.total_score)
     f.write(string)
 
 
-def start_screen(): # начальная заставка
+def start_screen():  # начальная заставка
     intro__text = ["НАЧАЛО", "",
                    "Можно ходить по траве,",
                    "не задевая стены.",
@@ -222,7 +224,7 @@ def start_screen(): # начальная заставка
                     if 40 < x0 < 200:
                         return True  # начинаем игру
                     elif 240 < x0 < 400:
-                        return  False  # загружаем игру
+                        return False  # загружаем игру
                     elif 660 < x0 < 820:
                         pygame.quit()
                         sys.exit()
@@ -230,14 +232,14 @@ def start_screen(): # начальная заставка
         clock.tick(fps)
 
 
-def terminate(): # функция выхода
+def terminate():  # функция выхода
     if victory or defeat:
         end_screen()
     pygame.quit()
     sys.exit()
 
 
-class Tile(pygame.sprite.Sprite): # класс тайла
+class Tile(pygame.sprite.Sprite):  # класс тайла
     def __init__(self, tile_type, pos_x, pos_y):
         super().__init__(tiles_group, all_sprites)
         self.image = tile_images[tile_type]
@@ -245,7 +247,7 @@ class Tile(pygame.sprite.Sprite): # класс тайла
             tile_width * pos_x, tile_height * pos_y)
 
 
-class Wall(Tile): # класс стены(унаследован от обычного тайла)
+class Wall(Tile):  # класс стены(унаследован от обычного тайла)
     def __init__(self, tile_type, pos_x, pos_y):
         super().__init__(tile_type, pos_x, pos_y)
         self.add(walls_group)
@@ -253,7 +255,7 @@ class Wall(Tile): # класс стены(унаследован от обычн
         self.y = pos_y
 
 
-class Shooter(pygame.sprite.Sprite):   # класс стрелка и врага
+class Shooter(pygame.sprite.Sprite):  # класс стрелка и врага
     def __init__(self, x, y, image, group, health=30, health_max=30, shoot=5, speed=50, limit=180, accuracy=9):
         super().__init__(group, all_sprites)
         self.image = image
@@ -321,23 +323,23 @@ class Shooter(pygame.sprite.Sprite):   # класс стрелка и врага
             for wall in walls_group:
                 if pygame.sprite.collide_circle_ratio(0.9)(self, wall):
                     if True:
-                        if self.dx < 0 and (wall.x * tile_width < self.x - self.hw < (wall.x + 1) * tile_width\
-                                            and not wall.x * tile_width < self.x < (wall.x + 1) * tile_width):
+                        if self.dx < 0 and (wall.x * tile_width < self.x - self.hw < (wall.x + 1) * tile_width and
+                                            not wall.x * tile_width < self.x < (wall.x + 1) * tile_width):
                             self.dx = abs(self.dx)
                             self.x += self.speed / fps * self.dx
                             self.rect.centerx = self.x
-                        elif self.dx > 0 and (wall.x * tile_width < self.x + self.hw < (wall.x + 1) * tile_width\
-                                            and not wall.x * tile_width < self.x < (wall.x + 1) * tile_width):
+                        elif self.dx > 0 and (wall.x * tile_width < self.x + self.hw < (wall.x + 1) * tile_width and
+                                              not wall.x * tile_width < self.x < (wall.x + 1) * tile_width):
                             self.dx = - abs(self.dx)
                             self.x += self.speed / fps * self.dx
                             self.rect.centerx = self.x
-                        elif self.dy > 0 and (wall.y * tile_height < self.y + self.hh < (wall.y + 1) * tile_height\
-                                and not wall.y * tile_height < self.y < (wall.y + 1) * tile_height):
+                        elif self.dy > 0 and (wall.y * tile_height < self.y + self.hh < (wall.y + 1) * tile_height and
+                                              not wall.y * tile_height < self.y < (wall.y + 1) * tile_height):
                             self.dy = - abs(self.dy)
                             self.y += self.speed / fps * self.dy
                             self.rect.centery = self.y
-                        elif self.dy < 0 and (wall.y * tile_height < self.y - self.hh < (wall.y + 1) * tile_height\
-                                and not wall.y * tile_height < self.y < (wall.y + 1) * tile_height):
+                        elif self.dy < 0 and (wall.y * tile_height < self.y - self.hh < (wall.y + 1) * tile_height and
+                                              not wall.y * tile_height < self.y < (wall.y + 1) * tile_height):
                             self.dy = abs(self.dy)
                             self.y += self.speed / fps * self.dy
                             self.rect.centery = self.y
@@ -457,7 +459,7 @@ enemies = []
 limits = int(height // 2 * 1.2)
 tile_width = tile_height = 50
 
-player_image = load_image('mar.png')
+player_image = load_image('mar2.png')
 enemy_image = load_image('enemy.png')
 bullet_image = load_image('bullet.png')
 red_bullet_image = load_image('redbullet.png')
@@ -580,14 +582,14 @@ while levels:  # Пока можно загружать уровни
                     if event.key == pygame.K_SPACE:  # Пауза / возобновление игры
                         pause = not pause
                     if event.key == pygame.K_s\
-                            and (pygame.key.get_mods() == pygame.KMOD_LCTRL
-                            or pygame.key.get_mods() == pygame.KMOD_RCTRL)\
-                            or event.key == pygame.K_F5:  # Сохранение состояния по F5 или Ctrl-S
+                            and (pygame.key.get_mods() == pygame.KMOD_LCTRL or
+                                 pygame.key.get_mods() == pygame.KMOD_RCTRL) or\
+                            event.key == pygame.K_F5:  # Сохранение состояния по F5 или Ctrl-S
                         save_state()
                     if event.key == pygame.K_l\
-                            and (pygame.key.get_mods() == pygame.KMOD_LCTRL
-                            or pygame.key.get_mods() == pygame.KMOD_RCTRL)\
-                            or event.key == pygame.K_F9:  # Загрузка состояния по F9 или Ctrl-L
+                            and (pygame.key.get_mods() == pygame.KMOD_LCTRL or
+                                 pygame.key.get_mods() == pygame.KMOD_RCTRL) or\
+                            event.key == pygame.K_F9:  # Загрузка состояния по F9 или Ctrl-L
                         level_number, sd_str = load_state()
                         if level_number is not None:
                             for sprite in all_sprites:
