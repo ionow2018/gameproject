@@ -11,18 +11,21 @@ def end_screen():  # заставка в случае победы или пор
         ins = "и занял " + str(place) + " место, "
     victor_text = ["VICTORY", "",
                    "Ты уничтожил " + str(my.enemies_counter) + " врагов",
-                   "и успешно закончил игру, набрав " + str(my.total_score) + " очков,",
+                   "и успешно закончил игру,",
+                   "набрав " + str(my.total_score) +
+                   " очков,",
                    ins + " поздравляем!",
-                   "", "Для выхода нажми Escape"]
+                   "", "Escape - возврат в меню"]
     defeat_text = ["ПОРАЖЕНИЕ", "",
                    "Ты набрал  " + str(my.total_score) + " очков " + ins + ",",
-                   "уничтожив " + str(my.enemies_counter) + " врагов, но они оказались сильнее.",
+                   "уничтожив " + str(my.enemies_counter) +
+                   " врагов, но они оказались сильнее.",
                    "Удачи в следующий раз.",
-                   "", "Для выхода нажми Escape"]
+                   "", "Escape - возврат в меню"]
     fon = pygame.transform.scale(load_image('new_fon.png'), (width, height))
     screen.blit(fon, (0, 0))
     font = pygame.font.Font(None, 30)
-    text_coord = 370
+    text_coord = 70
     if victory:
         text = victor_text
     else:
@@ -85,14 +88,15 @@ def load_level(filename):  # загрузка уровня
         sc_en = level_map[0].split()
         score = int(sc_en[0])
         enemies_max = int(sc_en[1])
-        enemies_spawn_hold = int(sc_en[2])
+        spawn_hold = int(sc_en[2])
         level_map.pop(0)
 
         # Подсчитываем максимальную длину
         max_width = max(map(len, level_map))
 
         # Дополняем каждую строку пустыми клетками ('.')
-        return score, enemies_max, enemies_spawn_hold, list(map(lambda x: x.ljust(max_width, '.'), level_map))
+        return score, enemies_max, spawn_hold,\
+            list(map(lambda x: x.ljust(max_width, '.'), level_map))
     except Exception as e:
         print(e)
         return None
@@ -123,7 +127,7 @@ def load_record(filename, new=-1):  # загрузка таблицы рекор
             else:
                 scores.append(new)
                 scores.sort(reverse=True)
-        print(i, place, scores)
+        # print(i, place, scores)
         if 0 < place < 6:
             if len(scores) == 6:
                 del scores[-1]
@@ -141,7 +145,7 @@ def load_state():  # загрузка состояния(здоровья и т.
         f = open(filename, mode="r")
         str1 = int(f.readline())
         str2 = f.readline()
-        print(str2)
+        # print(str2)
         return str1, str2
     except Exception as e:
         print(e)
@@ -195,7 +199,7 @@ def start_screen():  # начальная заставка
         text_coord += intro_rect.height
         screen.blit(string_rendered, intro_rect)
     x0 = 25
-    x1 = 255
+    x1 = 245
     x2 = 640
     y0 = 565
     Button(x0, y0)
@@ -222,25 +226,42 @@ def start_screen():  # начальная заставка
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_KP_ENTER:
+                for button in button_group:
+                    button.kill()
+                return True  # начинаем игру
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_F9:
+                for button in button_group:
+                    button.kill()
+                return False  # загружаем игру
             if event.type == pygame.MOUSEBUTTONDOWN:
-                x0, y0 = event.pos
-                if 540 < y0 < 620:
-                    if 40 < x0 < 200:
+                xm, ym = event.pos
+                if y0 < ym < y0 + 80:
+                    if x0 < xm < x0 + 160:
+                        for button in button_group:
+                            button.kill()
                         return True  # начинаем игру
-                    elif 240 < x0 < 400:
+                    elif x1 < xm < x1 + 160:
+                        for button in button_group:
+                            button.kill()
                         return False  # загружаем игру
-                    elif 660 < x0 < 820:
+                    elif x2 < xm < x2 + 160:
                         pygame.quit()
                         sys.exit()
         pygame.display.flip()
         clock.tick(fps)
 
 
-def terminate():  # функция выхода
+def terminate(nexit):  # функция выхода
     if victory or defeat:
         end_screen()
-    pygame.quit()
-    sys.exit()
+    if not nexit:
+        pygame.quit()
+        sys.exit()
+    return True
 
 
 class Tile(pygame.sprite.Sprite):  # класс тайла
@@ -260,7 +281,8 @@ class Wall(Tile):  # класс стены(унаследован от обыч�
 
 
 class Shooter(pygame.sprite.Sprite):  # класс стрелка и врага
-    def __init__(self, x, y, image, group, health=30, health_max=30, shoot=5, speed=50, limit=180, accuracy=9):
+    def __init__(self, x, y, image, group, health=30, health_max=30,
+                 shoot=5, speed=50, limit=180, accuracy=9):
         super().__init__(group, all_sprites)
         self.id = random.randint(1, 10000000)
         self.image = image
@@ -318,40 +340,49 @@ class Shooter(pygame.sprite.Sprite):  # класс стрелка и врага
     def move(self):  # передвижение
         self.x += self.speed / fps * self.dx
         self.rect.centerx = self.x
-        if self.x <= self.hw or self.x >= width - self.hw:  # проверка, если не соприкасается с краями поля
+        if self.x <= self.hw or self.x >= width - self.hw:
+            # проверка, не соприкасается ли с краями поля
             self.dx = - self.dx
         self.y += self.speed / fps * self.dy
         self.rect.centery = self.y
-        if self.y <= self.hh or self.y >= height - self.hh:  # проверка, если не соприкасается с краями поля
+        if self.y <= self.hh or self.y >= height - self.hh:
+            # проверка, не соприкасается ли с краями поля
             self.dy = - self.dy
-        if pygame.sprite.spritecollideany(self, walls_group):  # проверка, если не соприкасается со стенами
+        if pygame.sprite.spritecollideany(self, walls_group):
+            # проверка, не соприкасается ли со стенами
             for wall in walls_group:
                 if pygame.sprite.collide_circle_ratio(0.9)(self, wall):
                     if True:
-                        if self.dx < 0 and (wall.x * tile_width < self.x - self.hw < (wall.x + 1) * tile_width and
-                                            not wall.x * tile_width < self.x < (wall.x + 1) * tile_width):
+                        wx = wall.x * tile_width
+                        wx1 = (wall.x + 1) * tile_width
+                        wy = wall.y * tile_height
+                        wy1 = (wall.y + 1) * tile_height
+                        if self.dx < 0 and (wx < self.x - self.hw < wx1 and
+                                            not wx < self.x < wx1):
                             self.dx = abs(self.dx)
                             self.x += self.speed / fps * self.dx
                             self.rect.centerx = self.x
-                        elif self.dx > 0 and (wall.x * tile_width < self.x + self.hw < (wall.x + 1) * tile_width and
-                                              not wall.x * tile_width < self.x < (wall.x + 1) * tile_width):
+                        elif self.dx > 0 and (wx < self.x + self.hw < wx1 and
+                                              not wx < self.x < wx1):
                             self.dx = - abs(self.dx)
                             self.x += self.speed / fps * self.dx
                             self.rect.centerx = self.x
-                        elif self.dy > 0 and (wall.y * tile_height < self.y + self.hh < (wall.y + 1) * tile_height and
-                                              not wall.y * tile_height < self.y < (wall.y + 1) * tile_height):
+                        elif self.dy > 0 and (wy < self.y + self.hh < wy1 and
+                                              not wy < self.y < wy1):
                             self.dy = - abs(self.dy)
                             self.y += self.speed / fps * self.dy
                             self.rect.centery = self.y
-                        elif self.dy < 0 and (wall.y * tile_height < self.y - self.hh < (wall.y + 1) * tile_height and
-                                              not wall.y * tile_height < self.y < (wall.y + 1) * tile_height):
+                        elif self.dy < 0 and (wy < self.y - self.hh < wy1 and
+                                              not wy < self.y < wy1):
                             self.dy = abs(self.dy)
                             self.y += self.speed / fps * self.dy
                             self.rect.centery = self.y
 
     def shoot(self, enemy_x, enemy_y):  # стрельба
-        if self.health > 0 and ((self.x - enemy_x) ** 2 + (self.y - enemy_y) ** 2) ** 0.5 < self.limit * 2.5:
-            return Bullet(self.x, self.y, enemy_x, enemy_y, red_bullet_image, self.limit, 5, self.id)
+        hyp = ((self.x - enemy_x) ** 2 + (self.y - enemy_y) ** 2) ** 0.5
+        if self.health > 0 and hyp < self.limit * 2.5:
+            return Bullet(self.x, self.y, enemy_x, enemy_y, red_bullet_image,
+                          self.limit, 5, self.id)
         else:
             return None
 
@@ -359,8 +390,10 @@ class Shooter(pygame.sprite.Sprite):  # класс стрелка и врага
         self.health -= pwr
 
 
-class Player(Shooter):  # класс игрока, унаследованный от класса Shooter с некоторыми изменениями характеристик
-    def __init__(self, x, y, image, group, health=30, health_max=30, shoot=5, speed=50):
+class Player(Shooter):
+    # класс игрока, унаследованный от Shooter, с изменениями характеристик
+    def __init__(self, x, y, image, group, health=30, health_max=30,
+                 shoot=5, speed=50):
         super().__init__(x, y, image, group, health, health_max, shoot, speed)
         self.dx = 0
         self.dy = 0
@@ -413,7 +446,8 @@ class Bullet(pygame.sprite.Sprite):  # класс пули
             self.kill()
 
     def move(self):  # смещение
-        self.distance = ((self.x - self.x0) ** 2 + (self.y - self.y0) ** 2) ** 0.5
+        hyp = ((self.x - self.x0) ** 2 + (self.y - self.y0) ** 2) ** 0.5
+        self.distance = hyp
         self.x += self.speed / fps * self.dx
         self.y += self.speed / fps * self.dy
         self.rect.centerx = self.x
@@ -422,7 +456,8 @@ class Bullet(pygame.sprite.Sprite):  # класс пули
             self.show = False
             self.kill()
         if self.show:
-            if pygame.sprite.spritecollideany(self, player_group):  # если попала в игрока
+            if pygame.sprite.spritecollideany(self, player_group):
+                # если пуля попала в игрока
                 if self.ranged:  # если улетела от стрелка
                     self.show = False
                     for player in player_group:
@@ -432,7 +467,8 @@ class Bullet(pygame.sprite.Sprite):  # класс пули
             else:
                 if self.shooter_number == 0:
                     self.ranged = True
-            if pygame.sprite.spritecollideany(self, all_enemies):  # попала во врага
+            if pygame.sprite.spritecollideany(self, all_enemies):
+                # если пуля попала во врага
                 if self.ranged:
                     self.show = False
                     for enemy in all_enemies:
@@ -458,8 +494,8 @@ screen = pygame.display.set_mode(size)
 clock = pygame.time.Clock()
 fps = 60
 bullets = []
-enemies_spawn_counter = 0
-enemies_spawn_hold = 0
+spawn_counter = 0
+spawn_hold = 0
 enemy_shoots = 0
 enemies_max = 0
 enemies = []
@@ -486,193 +522,215 @@ pygame.mixer.music.play()
 sound1 = pygame.mixer.Sound('data/shoot.wav')
 font = pygame.font.Font(None, 22)
 level_name = "Pkw-level"
-level_number = 0
-pause = False
-levels = True  # если нормально загружен уровень
-repeat = False  # если не первый уровень
-victory = False
-defeat = False
-start = start_screen()
-while levels:  # Пока можно загружать уровни
-    if repeat:  # Не первый уровень
-        level_number += 1
-        enemies_counter = my.enemies_counter
-        total_score = my.total_score
-        for sprite in all_sprites:
-            sprite.kill()
-        enemies = []
-    else:
-        enemies_counter = 0
-        total_score = 0
-        repeat = True
-    rez = load_level(level_name + str(level_number) + ".txt")
-    if rez is not None:  # Если смогли загрузить очередной уровень
-        score, enemies_max, enemies_spawn_hold, level = rez
-    else:
-        if level_number > 0:
-            victory = True
-        terminate()
-    widthN, heightN = generate_level(level)
-    if widthN > 0:  # В файле нормальное описание уровня
-        my = Player(width // 2, height // 2, player_image, player_group, 120, 120, 5, 100)
-        my.enemies_counter = enemies_counter  # Подсчет убитых врагов всего за игру
-        my.total_score = total_score  # Подсчет очков за всю игру
-        wt = (widthN + 0.8) * tile_width  # Отступы для отображения счета и здоровья
-        ht = tile_height / 2
-        running = True
-        if not start:  # загрузка сохранённой игры из файла
-            start = True
-            level_number, sd_str = load_state()
-            if level_number >= 0:
-                for sprite in all_sprites:
-                    sprite.kill()
-                enemies = []
-                args = sd_str.split()
-                x_my = float(args[0])
-                y_my = float(args[1])
-                health = int(args[2])
-                points = int(args[3])
-                enemies_counter = int(args[4])
-                total_score = int(args[5])
-                rez = load_level(level_name + str(level_number) + ".txt")
-                score, enemies_max, enemies_spawn_hold, level = rez
-                widthN, heightN = generate_level(level)
-                if widthN > 0:
-                    my = Player(x_my, y_my, player_image, player_group, health, 120, 5, 100)
-                    my.enemies_counter = enemies_counter
-                    my.total_score = total_score
-                    wt = (widthN + 0.8) * tile_width
-                    ht = tile_height / 2
-                my.points = points
-                my.enemies_counter = enemies_counter
-                my.total_score = total_score
-            else:
-                level_number = 0
-        while running:
-            screen.fill((255, 255, 255))
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    terminate()
-                if event.type == pygame.MOUSEBUTTONDOWN:
-                    pause = False
-                    x0, y0 = event.pos
-                    distance = ((x0 - my.x) ** 2 + (y0 - my.y) ** 2) ** 0.5
-                    if distance > 0:  # Щелчок не по самому себе
-                        bullets.append(Bullet(my.x, my.y, x0, y0, bullet_image, limits, 20))
-                if event.type == pygame.ACTIVEEVENT:
-                    if event.state == 6:  # Если свернуть игру - пауза
-                        if event.gain == 0:
-                            pause = True
-                        elif event.gain == 1:
-                            pause = False
-                elif event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_UP:
-                        my.dy = -1
-                        if my.down:
-                            my.down = False
-                    if event.key == pygame.K_DOWN:
-                        my.dy = 1
-                        if not my.down:
-                            my.down = True
-                    if event.key == pygame.K_LEFT:
-                        if my.right:
-                            my.image = pygame.transform.flip(my.image, 1, 0)
-                            my.right = False
-                        my.dx = -1
-                    if event.key == pygame.K_RIGHT:
-                        if not my.right:
-                            my.image = pygame.transform.flip(my.image, 1, 0)
-                            my.right = True
-                        my.dx = 1
-                    if event.key == pygame.K_ESCAPE:  # Выход
-                        terminate()
-                    if event.key == pygame.K_SPACE:  # Пауза / возобновление игры
-                        pause = not pause
-                    if event.key == pygame.K_s\
-                            and (pygame.key.get_mods() == pygame.KMOD_LCTRL or
-                                 pygame.key.get_mods() == pygame.KMOD_RCTRL) or\
-                            event.key == pygame.K_F5:  # Сохранение состояния по F5 или Ctrl-S
-                        save_state()
-                    if event.key == pygame.K_l\
-                            and (pygame.key.get_mods() == pygame.KMOD_LCTRL or
-                                 pygame.key.get_mods() == pygame.KMOD_RCTRL) or\
-                            event.key == pygame.K_F9:  # Загрузка состояния по F9 или Ctrl-L
-                        level_number, sd_str = load_state()
-                        if level_number is not None:
-                            for sprite in all_sprites:
-                                sprite.kill()
-                            enemies = []
-                            args = sd_str.split()
-                            x_my = float(args[0])
-                            y_my = float(args[1])
-                            health = int(args[2])
-                            points = int(args[3])
-                            enemies_counter = int(args[4])
-                            total_score = int(args[5])
-                            rez = load_level(level_name + str(level_number) + ".txt")
-                            score, enemies_max, enemies_spawn_hold, level = rez
-                            widthN, heightN = generate_level(level)
-                            if widthN > 0:
-                                my = Player(x_my, y_my, player_image, player_group, health, 120, 5, 100)
-                                my.enemies_counter = enemies_counter
-                                my.total_score = total_score
-                                wt = (widthN + 0.8) * tile_width
-                                ht = tile_height / 2
-                            my.points = points
+while True:
+    start = start_screen()
+    level_number = 0
+    pause = False
+    levels = True  # если нормально загружен уровень
+    repeat = False  # если не первый уровень
+    victory = False
+    defeat = False
+    finita = False
+    while levels:  # Пока можно загружать уровни
+        if repeat:  # Не первый уровень
+            level_number += 1
+            enemies_counter = my.enemies_counter
+            total_score = my.total_score
+            for sprite in all_sprites:
+                sprite.kill()
+            enemies = []
+        else:
+            enemies_counter = 0
+            total_score = 0
+            repeat = True
+        rez = load_level(level_name + str(level_number) + ".txt")
+        if rez is not None:  # Если смогли загрузить очередной уровень
+            score, enemies_max, spawn_hold, level = rez
+        else:
+            if level_number > 0:
+                victory = True
+            finita = terminate(True)
+            levels = False
+        if not finita:
+            widthN, heightN = generate_level(level)
+            if widthN > 0:  # В файле нормальное описание уровня
+                my = Player(width // 2, height // 2, player_image,
+                            player_group, 120, 120, 5, 100)
+                my.enemies_counter = enemies_counter  # Убитые враги за игру
+                my.total_score = total_score          # Подсчет очков за игру
+                wt = (widthN + 0.8) * tile_width      # Отступы для отображения
+                ht = tile_height / 2                  # счета и здоровья
+                running = True
+                if not start:  # загрузка сохранённой игры из файла
+                    start = True
+                    level_number, sd_str = load_state()
+                    if level_number >= 0:
+                        for sprite in all_sprites:
+                            sprite.kill()
+                        enemies = []
+                        args = sd_str.split()
+                        x_my = float(args[0])
+                        y_my = float(args[1])
+                        health = int(args[2])
+                        points = int(args[3])
+                        enemies_counter = int(args[4])
+                        total_score = int(args[5])
+                        full_name = level_name + str(level_number) + ".txt"
+                        rez = load_level(full_name)
+                        score, enemies_max, spawn_hold, level = rez
+                        widthN, heightN = generate_level(level)
+                        if widthN > 0:
+                            my = Player(x_my, y_my, player_image, player_group,
+                                        health, 120, 5, 100)
                             my.enemies_counter = enemies_counter
                             my.total_score = total_score
-                elif event.type == pygame.KEYUP:
-                    if event.key == pygame.K_UP:
-                        if my.dy < 0 or (my.dy > 0 and not my.down):
-                            my.dy = 0
-                    if event.key == pygame.K_DOWN:
-                        if my.dy > 0 or (my.dy < 0 and my.down):
-                            my.dy = 0
-                    if event.key == pygame.K_LEFT:
-                        if my.dx < 0 or (my.dx > 0 and not my.right):
-                            my.dx = 0
-                    if event.key == pygame.K_RIGHT:
-                        if my.dx > 0 or (my.dx < 0 and my.right):
-                            my.dx = 0
-            all_sprites.draw(screen)
-            if not pause:
-                my.move()
-                if my.draw():  # Уровень здоровья = 0 - поражение
-                    defeat = True
-                    terminate()
-                if len(enemies) < enemies_max and enemies_spawn_counter % enemies_spawn_hold == 0:
-                    enemies_spawn_counter = 0
-                    collide = True
-                    while collide:
-                        correct = False
-                        while not correct:
-                            x_enemy = random.randint(0, width)
-                            y_enemy = random.randint(0, height)
-                            # Враг появляется не слишком близко к игроку:
-                            if ((x_enemy - my.x) ** 2 + (y_enemy - my.y) ** 2) ** 0.5 >= min_distance:
-                                correct = True
-                        new_enemy = Shooter(x_enemy, y_enemy, enemy_image, all_enemies)
-                        if new_enemy.health > 0:
-                            collide = False  # Враг появляется на пустом месте
-                    enemies.append(new_enemy)
-                for i, enemy in enumerate(enemies):
-                    enemy.move()
-                    if (enemy_shoots + i * 15) % 40 == 0:
-                        enemy.shoot(my.x, my.y)
-                for i in range(len(enemies) - 1, -1, -1):
-                    if enemies[i].draw():
-                        enemies.pop(i)
-                for bullet in all_bullets:
-                    bullet.move()
-                    bullet.draw()
-                enemy_shoots += 1
-                enemies_spawn_counter += 1
-                if my.points > score:
-                    my.points = 0
-                    running = False
-            printscreen()
-            clock.tick(fps)
-            pygame.display.flip()
-    else:
-        levels = False
-pygame.quit()
+                            wt = (widthN + 0.8) * tile_width
+                            ht = tile_height / 2
+                        my.points = points
+                        my.enemies_counter = enemies_counter
+                        my.total_score = total_score
+                    else:
+                        level_number = 0
+                while running:
+                    screen.fill((255, 255, 255))
+                    for event in pygame.event.get():
+                        if event.type == pygame.QUIT:
+                            terminate(False)
+                        if event.type == pygame.MOUSEBUTTONDOWN:
+                            pause = False
+                            x0, y0 = event.pos
+                            dstn = ((x0 - my.x) ** 2 + (y0 - my.y) ** 2) ** 0.5
+                            if dstn > 0:  # Щелчок не по самому себе
+                                bullets.append(Bullet(my.x, my.y, x0, y0,
+                                               bullet_image, limits, 20))
+                        if event.type == pygame.ACTIVEEVENT:
+                            if event.state == 6:  # Если свернуть игру - пауза
+                                if event.gain == 0:
+                                    pause = True
+                                elif event.gain == 1:
+                                    pause = False
+                        elif event.type == pygame.KEYDOWN:
+                            if event.key == pygame.K_UP:
+                                my.dy = -1
+                                if my.down:
+                                    my.down = False
+                            if event.key == pygame.K_DOWN:
+                                my.dy = 1
+                                if not my.down:
+                                    my.down = True
+                            if event.key == pygame.K_LEFT:
+                                if my.right:
+                                    my.image =\
+                                        pygame.transform.flip(my.image, 1, 0)
+                                    my.right = False
+                                my.dx = -1
+                            if event.key == pygame.K_RIGHT:
+                                if not my.right:
+                                    my.image =\
+                                        pygame.transform.flip(my.image, 1, 0)
+                                    my.right = True
+                                my.dx = 1
+                            if event.key == pygame.K_ESCAPE:  # Выход
+                                terminate(False)
+                            if event.key == pygame.K_SPACE:
+                                # Пауза / продолжение игры
+                                pause = not pause
+                            k_mod = pygame.key.get_mods()
+                            if event.key == pygame.K_s and\
+                                (k_mod == pygame.KMOD_LCTRL or
+                                 k_mod == pygame.KMOD_RCTRL) or\
+                                    event.key == pygame.K_F5:
+                                # Сохранение состояния по F5 или Ctrl-S
+                                save_state()
+                            if event.key == pygame.K_l and\
+                                (k_mod == pygame.KMOD_LCTRL or
+                                 k_mod == pygame.KMOD_RCTRL) or\
+                                    event.key == pygame.K_F9:
+                                # Загрузка состояния по F9 или Ctrl-L
+                                level_number, sd_str = load_state()
+                                if level_number is not None:
+                                    for sprite in all_sprites:
+                                        sprite.kill()
+                                    enemies = []
+                                    args = sd_str.split()
+                                    x_my = float(args[0])
+                                    y_my = float(args[1])
+                                    health = int(args[2])
+                                    points = int(args[3])
+                                    enemies_counter = int(args[4])
+                                    total_score = int(args[5])
+                                    full_name = level_name + str(level_number)
+                                    rez = load_level(full_name + ".txt")
+                                    score, enemies_max, spawn_hold, level = rez
+                                    widthN, heightN = generate_level(level)
+                                    if widthN > 0:
+                                        my = Player(x_my, y_my, player_image,
+                                                    player_group, health,
+                                                    120, 5, 100)
+                                        my.enemies_counter = enemies_counter
+                                        my.total_score = total_score
+                                        wt = (widthN + 0.8) * tile_width
+                                        ht = tile_height / 2
+                                    my.points = points
+                                    my.enemies_counter = enemies_counter
+                                    my.total_score = total_score
+                        elif event.type == pygame.KEYUP:
+                            if event.key == pygame.K_UP:
+                                if my.dy < 0 or (my.dy > 0 and not my.down):
+                                    my.dy = 0
+                            if event.key == pygame.K_DOWN:
+                                if my.dy > 0 or (my.dy < 0 and my.down):
+                                    my.dy = 0
+                            if event.key == pygame.K_LEFT:
+                                if my.dx < 0 or (my.dx > 0 and not my.right):
+                                    my.dx = 0
+                            if event.key == pygame.K_RIGHT:
+                                if my.dx > 0 or (my.dx < 0 and my.right):
+                                    my.dx = 0
+                    all_sprites.draw(screen)
+                    if not pause:
+                        my.move()
+                        if my.draw():  # Уровень здоровья = 0 - поражение
+                            defeat = True
+                            terminate(True)
+                        else:
+                            if len(enemies) < enemies_max and\
+                               spawn_counter % spawn_hold == 0:
+                                spawn_counter = 0
+                                collide = True
+                                while collide:
+                                    correct = False
+                                    while not correct:
+                                        x_enemy = random.randint(0, width)
+                                        y_enemy = random.randint(0, height)
+                                        # Враг возник не очень близко к игроку:
+                                        hyp = ((x_enemy - my.x) ** 2 +
+                                               (y_enemy - my.y) ** 2) ** 0.5
+                                        if hyp >= min_distance:
+                                            correct = True
+                                    enemy = Shooter(x_enemy, y_enemy,
+                                                    enemy_image, all_enemies)
+                                    if enemy.health > 0:
+                                        # Враг появляется на пустом месте
+                                        collide = False
+                                enemies.append(enemy)
+                            for i, enemy in enumerate(enemies):
+                                enemy.move()
+                                if (enemy_shoots + i * 15) % 40 == 0:
+                                    enemy.shoot(my.x, my.y)
+                            for i in range(len(enemies) - 1, -1, -1):
+                                if enemies[i].draw():
+                                    enemies.pop(i)
+                            for bullet in all_bullets:
+                                bullet.move()
+                                bullet.draw()
+                            enemy_shoots += 1
+                            spawn_counter += 1
+                            if my.points > score:
+                                my.points = 0
+                                running = False
+                    printscreen()
+                    clock.tick(fps)
+                    pygame.display.flip()
+            else:
+                levels = False
