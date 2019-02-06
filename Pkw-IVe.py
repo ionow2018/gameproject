@@ -28,8 +28,12 @@ def end_screen():  # заставка в случае победы или пор
     text_coord = 70
     if victory:
         text = victor_text
+        pygame.mixer.music.load('data/ff.mp3')
+        pygame.mixer.music.play()
     else:
         text = defeat_text
+        pygame.mixer.music.load('data/doom.mp3')
+        pygame.mixer.music.play()
     for line in text:
         string_rendered = font.render(line, 1, pygame.Color('black'))
         intro_rect = string_rendered.get_rect()
@@ -44,6 +48,7 @@ def end_screen():  # заставка в случае победы или пор
                 pygame.quit()
                 sys.exit()
             if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                pygame.mixer.music.stop()
                 return  # начинаем игру
         pygame.display.flip()
         clock.tick(fps)
@@ -180,14 +185,16 @@ def save_state():  # сохранение состояния
 
 def start_screen():  # начальная заставка
     intro__text = ["НАЧАЛО", "",
-                   "Можно ходить по траве,",
-                   "не задевая стены.",
+                   "Убивай все кружки.",
                    "Движение - стрелками,",
+                   "пробел - пауза.",
                    "стрельба - мышью.",
                    "F5, Ctrl-S - сохранение",
                    "F9, Ctrl-L - загрузка"]
     fon = pygame.transform.scale(load_image('new_fon.png'), (width, height))
     screen.blit(fon, (0, 0))
+    pygame.mixer.music.load('data/test.mp3')
+    pygame.mixer.music.play()
     font = pygame.font.Font(None, 30)
     text_coord = 70
     for line in intro__text:
@@ -226,6 +233,8 @@ def start_screen():  # начальная заставка
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
+            # if event.type == pygame.KEYDOWN:
+            #     print(event.key)
             if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                 pygame.quit()
                 sys.exit()
@@ -237,6 +246,10 @@ def start_screen():  # начальная заставка
                 for button in button_group:
                     button.kill()
                 return False  # загружаем игру
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_KP_MINUS:
+                pygame.mixer.music.stop()
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_KP_PLUS:
+                pygame.mixer.music.play()
             if event.type == pygame.MOUSEBUTTONDOWN:
                 xm, ym = event.pos
                 if y0 < ym < y0 + 80:
@@ -407,6 +420,8 @@ class Player(Shooter):
     def draw(self):
         ret = False
         if self.health <= 0:
+            # pygame.mixer.music.load('data/rb.mp3')
+            # pygame.mixer.music.play()
             ret = True
         return ret
 
@@ -517,9 +532,9 @@ all_enemies = pygame.sprite.Group()
 player_group = pygame.sprite.Group()
 
 min_distance = 100
-pygame.mixer.music.load('data/test.mp3')
-pygame.mixer.music.play()
 sound1 = pygame.mixer.Sound('data/shoot.wav')
+# звук смерти противника(он есть, но из-за музыки его не слышно)
+# sound2 = pygame.mixer.Sound('data/rb.mp3')
 font = pygame.font.Font(None, 22)
 level_name = "Pkw-level"
 while True:
@@ -632,6 +647,10 @@ while True:
                                 my.dx = 1
                             if event.key == pygame.K_ESCAPE:  # Выход
                                 terminate(False)
+                            if event.key == pygame.K_KP_MINUS:
+                                pygame.mixer.music.stop()
+                            if event.key == pygame.K_KP_PLUS:
+                                pygame.mixer.music.play()
                             if event.key == pygame.K_SPACE:
                                 # Пауза / продолжение игры
                                 pause = not pause
@@ -692,7 +711,9 @@ while True:
                         my.move()
                         if my.draw():  # Уровень здоровья = 0 - поражение
                             defeat = True
-                            terminate(True)
+                            finita = terminate(True)
+                            running = False
+                            levels = False
                         else:
                             if len(enemies) < enemies_max and\
                                spawn_counter % spawn_hold == 0:
